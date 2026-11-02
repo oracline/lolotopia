@@ -1327,10 +1327,6 @@
     // Sturz-Simulation: das Objekt spiralt mit zunehmender Geschwindigkeit zum
     // Ereignishorizont; Entfernung, Gewichtskraft und Orbitales Tempo live aktualisiert.
     const FALL_SWEEP = Math.PI * 5;
-    // Der leuchtende Ring um den Ereignishorizont (1,08 × Horizontradius) ist die
-    // Sichtbarkeitsgrenze: Das Objekt verschwindet, wenn es ihn am Bildschirm erreicht.
-    const OBJECT_RIM_FACTOR = 1.08;
-
     // Bildschirmposition des Objekts: die Transformation der Scheibenebene
     // (erst um -0,15 drehen, dann y stauchen) wird hier nachgebildet, weil der
     // Ereignishorizont ein Kreis auf dem Bildschirm ist, nicht in der Scheibenebene.
@@ -1343,9 +1339,19 @@
       return { x: xr, y: yr * 0.40 };
     }
 
-    function objectInsideRim(scale, decades, theta) {
+    // Sichtbarkeit mit Verdeckung: Wir blicken leicht von oben auf die Scheibenebene,
+    // die obere Hälfte liegt hinter dem schwarzen Loch, die untere davor. Hinter der
+    // Silhouette ist das Objekt verdeckt; im dunklen Halo (bis 2,5 R) hinter dem Loch
+    // blendet es weich ein, der leuchtende Ring verdeckt nie.
+    function objectVisibility(scale, decades, theta) {
       const off = objectScreenOffset(scale, decades, theta);
-      return Math.hypot(off.x, off.y) <= 66 * scale * OBJECT_RIM_FACTOR;
+      const r = Math.hypot(off.x, off.y);
+      const disk = 66 * scale;
+      const halo = 2.5 * disk;
+      if (off.y > 0) return 1;
+      if (r <= disk) return 0;
+      if (r >= halo) return 1;
+      return (r - disk) / (halo - disk);
     }
 
     function updateFall() {
@@ -1353,18 +1359,6 @@
       fallProgress = Math.min(1, (time - fallStartTime) / fallDuration);
       const decades = fallStartDecades * (1 - fallProgress * fallProgress);
       const theta = fallAngle0 + FALL_SWEEP * Math.pow(fallProgress, 1.6);
-      const scale = Math.min(W, H) / 700 * viewSizeFactor * getSettings().zoom;
-      if (objectInsideRim(scale, decades, theta)) {
-        // Visueller Kontakt mit dem Horizont: Objekt verschluckt sich, Distanz
-        // und Anzeige springt auf den Ereignishorizont.
-        exactObjectDistanceKm = rsKm;
-        objectDistanceSlider.value = String(sliderFromObjectDistance(rsKm));
-        updateSliderFill(objectDistanceSlider);
-        updateObjectWeight(getCurrentSolarMasses());
-        fallState = FALL_SWALLOWED;
-        fallBtn.textContent = "↺ Zurücksetzen";
-        return;
-      }
       const currentKm = rsKm * Math.pow(10, decades);
       exactObjectDistanceKm = currentKm;
       objectDistanceSlider.value = String(sliderFromObjectDistance(currentKm));
@@ -1372,6 +1366,11 @@
       updateObjectWeight(getCurrentSolarMasses());
       fallTrail.push({ d: decades, a: theta });
       if (fallTrail.length > 120) fallTrail.shift();
+      if (fallProgress >= 1) {
+        // Ereignishorizont erreicht: Objekt verschluckt sich.
+        fallState = FALL_SWALLOWED;
+        fallBtn.textContent = "↺ Zurücksetzen";
+      }
     }
 
     function drawObject(cx, cy, scale) {
@@ -1382,7 +1381,8 @@
       const theta = fallState === FALL_RUNNING
         ? fallAngle0 + FALL_SWEEP * Math.pow(fallProgress, 1.6)
         : fallAngle0;
-      if (objectInsideRim(scale, decades, theta)) return;
+      const alpha = objectVisibility(scale, decades, theta);
+      if (alpha <= 0) return;
       const markerR = 2.5 + 0.4 * Math.log10(getExactObjectKg() / 0.001);
       const rVis = (66 + decades * 38) * scale;
 
@@ -1392,15 +1392,13 @@
       ctx.rotate(-0.15);
 
       if (fallTrail.length > 1) {
-        const screenRs = fallTrail.map(pt => {
-          const off = objectScreenOffset(scale, pt.d, pt.a);
-          return Math.hypot(off.x, off.y);
-        });
+        const alphas = fallTrail.map(pt => objectVisibility(scale, pt.d, pt.a));
         for (let i = 1; i < fallTrail.length; i++) {
-          if (screenRs[i] <= 66 * scale * OBJECT_RIM_FACTOR || screenRs[i - 1] <= 66 * scale * OBJECT_RIM_FACTOR) continue;
+          const segAlpha = Math.min(alphas[i], alphas[i - 1]);
+          if (segAlpha <= 0) continue;
           const r0 = (66 + fallTrail[i - 1].d * 38) * scale;
           const r1 = (66 + fallTrail[i].d * 38) * scale;
-          ctx.strokeStyle = `rgba(255, 140, 66, ${0.35 * i / fallTrail.length})`;
+          ctx.strokeStyle = `rgba(255, 140, 66, ${0.35 * (i / fallTrail.length) * segAlpha})`;
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.moveTo(Math.cos(fallTrail[i - 1].a) * r0, Math.sin(fallTrail[i - 1].a) * r0);
@@ -1409,6 +1407,7 @@
         }
       }
 
+      ctx.globalAlpha = alpha;
       ctx.shadowBlur = 12;
       ctx.shadowColor = "rgba(255, 140, 66, .8)";
       ctx.fillStyle = "#ff8c42";

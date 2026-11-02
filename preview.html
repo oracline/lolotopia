@@ -185,6 +185,21 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
+    /* Zoom-Regler in der Legende in Grau. */
+    #zoom {
+      --accent: #9aa2ad;
+      --accent-glow: rgba(154, 162, 173, .45);
+    }
+    #zoom::-webkit-slider-runnable-track {
+      background: var(--slider-fill, #9aa2ad);
+    }
+    #zoom::-webkit-slider-thumb {
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    #zoom::-moz-range-thumb {
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
     .view-hint {
       margin: 2px 0 6px;
       color: var(--muted);
@@ -973,6 +988,11 @@
       <p><strong>Akkretionsscheibe:</strong> Materie, die um ein schwarzes Loch rotiert und dabei intensive Strahlung aussendet.</p>
       <p><strong>Orbitalgeschwindigkeit:</strong> So schnell muss das Objekt sein, um das schwarze Loch zu umkreisen.</p>
     </div>
+    <div class="row">
+      <label for="zoom">Zoom</label>
+      <input type="text" class="value" id="zoomValue" inputmode="decimal" aria-label="Zoom in Prozent, direkt eingeben" value="100 %">
+    </div>
+    <input id="zoom" type="range" min="0.5" max="2" value="1" step="0.01">
   </div>
 
   <div class="scroll-hint">↓ Nach unten scrollen für Informationen</div>
@@ -983,8 +1003,10 @@
     const ctx = canvas.getContext("2d");
 
     const brightnessSlider = document.getElementById("brightness");
+    const zoomSlider = document.getElementById("zoom");
 
     const brightnessValue = document.getElementById("brightnessValue");
+    const zoomValue = document.getElementById("zoomValue");
     const horizonSizeValue = document.getElementById("horizonSizeValue");
 
     const pauseBtn = document.getElementById("pauseBtn");
@@ -1020,6 +1042,7 @@
     let exactObjectMassKg = null;
     let exactObjectDistanceKm = null;
     let exactBrightness = null;
+    let exactZoom = null;
     let running = true;
     let last = performance.now();
     let time = 0;
@@ -1078,13 +1101,15 @@
 
     function getSettings() {
       return {
-        brightness: exactBrightness ?? Number(brightnessSlider.value)
+        brightness: exactBrightness ?? Number(brightnessSlider.value),
+        zoom: exactZoom ?? Number(zoomSlider.value)
       };
     }
 
     function updateLabels() {
-      const b = getSettings().brightness;
-      setValueField(brightnessValue, b.toLocaleString("de-DE", { style: "percent", maximumFractionDigits: 1 }));
+      const s = getSettings();
+      setValueField(brightnessValue, s.brightness.toLocaleString("de-DE", { style: "percent", maximumFractionDigits: 1 }));
+      setValueField(zoomValue, s.zoom.toLocaleString("de-DE", { style: "percent", maximumFractionDigits: 1 }));
     }
 
     // Schreibt formatierte Werte in die Eingabefelder, überschreibt aber das Feld,
@@ -1109,6 +1134,7 @@
       updateSliderFill(objectMassSlider);
       updateSliderFill(objectDistanceSlider);
       updateSliderFill(brightnessSlider);
+      updateSliderFill(zoomSlider);
     }
 
     function drawBackground() {
@@ -1263,7 +1289,7 @@
       drawBackground();
 
       const s = getSettings();
-      const scale = Math.min(W, H) / 700 * viewSizeFactor;
+      const scale = Math.min(W, H) / 700 * viewSizeFactor * s.zoom;
       const cx = W / 2;
       const cy = H / 2;
 
@@ -1327,7 +1353,7 @@
       fallProgress = Math.min(1, (time - fallStartTime) / fallDuration);
       const decades = fallStartDecades * (1 - fallProgress * fallProgress);
       const theta = fallAngle0 + FALL_SWEEP * Math.pow(fallProgress, 1.6);
-      const scale = Math.min(W, H) / 700 * viewSizeFactor;
+      const scale = Math.min(W, H) / 700 * viewSizeFactor * getSettings().zoom;
       if (objectInsideRim(scale, decades, theta)) {
         // Visueller Kontakt mit dem Horizont: Objekt verschluckt sich, Distanz
         // und Anzeige springt auf den Ereignishorizont.
@@ -1644,6 +1670,10 @@
       updateSliderFill(objectDistanceSlider);
       updateObjectWeight(getCurrentSolarMasses());
     }
+    function applyZoomFromSlider() {
+      updateSliderFill(zoomSlider);
+      updateLabels();
+    }
 
     // Ziehen an einem Regler verwirft den exakt eingegebenen Wert und kehrt zur
     // quantisierten Reglerdarstellung zurück.
@@ -1661,6 +1691,13 @@
       exactObjectDistanceKm = null;
       updateSliderFill(objectDistanceSlider);
       updateObjectWeight(getCurrentSolarMasses());
+    });
+
+    // Zoom ist eine reine Ansichtseinstellung: Das Ziehen beeinflusst keine
+    // Voreinstellung und keine Physik, nur die Bildschirmgröße der Simulation.
+    zoomSlider.addEventListener("input", () => {
+      exactZoom = null;
+      applyZoomFromSlider();
     });
 
     // Sturz starten bzw. abbrechen und Startposition wiederherstellen.
@@ -1708,6 +1745,7 @@
     wireValueField(brightnessValue, brightnessSlider, parsePercentInput, parsed => (Math.round(Math.max(0, Math.min(2, parsed)) * 100) / 100).toFixed(2), 0, 2, applyBrightnessFromSlider, v => { exactBrightness = v; });
     wireValueField(objectMassValue, objectMassSlider, parseObjectMassInput, sliderFromObjectMass, 0.001, 1e12, applyObjectSliders, v => { exactObjectMassKg = v; });
     wireValueField(objectDistanceValue, objectDistanceSlider, parseDistanceInput, sliderFromObjectDistance, 1000, 1e15, applyObjectSliders, v => { exactObjectDistanceKm = v; });
+    wireValueField(zoomValue, zoomSlider, parsePercentInput, v => (Math.round(Math.max(0.5, Math.min(2, v)) * 100) / 100).toFixed(2), 0.5, 2, applyZoomFromSlider, v => { exactZoom = v; });
 
     pauseBtn.addEventListener("click", () => {
       running = !running;

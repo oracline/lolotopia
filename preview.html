@@ -733,25 +733,6 @@
         padding: 7px 9px;
         font-size: .8rem;
       }
-
-      .legend {
-        left: 50%;
-        right: auto;
-        bottom: 10%;
-        transform: translateX(-50%);
-        max-width: 20%;
-        width: max-content;
-        text-align: center;
-        font-size: clamp(.63rem, 2.7vw, .76rem);
-      }
-
-      .scroll-hint {
-        bottom: 2%;
-        max-width: 82%;
-        white-space: normal;
-        text-align: center;
-        font-size: clamp(.66rem, 2.7vw, .8rem);
-      }
     }
 
     .legend {
@@ -904,11 +885,6 @@
       font-size: .78rem !important;
       line-height: 1.4 !important;
     }
-    @media (max-width: 700px) {
-      .ui { top: 3% !important; left: 3% !important; width: 48% !important; max-width: 48% !important; }
-      .ui .row { grid-template-columns: 1fr; }
-      .ui .row .value { width: 100%; }
-    }
 
     /* Die Seitenleiste bleibt im Simulationsbereich und ragt nicht in den Infoscreen. */
     .hero > .ui {
@@ -918,12 +894,36 @@
       overscroll-behavior: contain;
       scrollbar-width: thin;
     }
+
+    /* Mobil (≤700px): Alles untereinander im Seitenfluss – Logo, Simulation,
+       Einstellungen, Definitionen. Die Überlagerungen werden zu Flex-Elementen. */
     @media (max-width: 700px) {
-      .hero > .ui {
-        top: 3% !important;
-        max-height: calc(100% - 6% - 12px) !important;
-        overflow-y: auto !important;
+      .hero {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
       }
+      .hero > * { position: static; }
+      .brand-logo { order: 1; align-self: center; margin: 12px 0 4px; }
+      .brand-logo img { width: 40vw; }
+      #space { order: 2; width: 100%; height: 58vh; }
+      .hero > .ui {
+        order: 3;
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      .legend {
+        order: 4;
+        position: static;
+        width: 100%;
+        max-width: 100%;
+        transform: none;
+      }
+      .scroll-hint { display: none; }
     }
 
   </style>
@@ -1089,13 +1089,13 @@
 
     function resize() {
       DPR = Math.min(window.devicePixelRatio || 1, 2);
-      W = window.innerWidth;
-      H = window.innerHeight;
+      // Die Canvas-Größe steuert das Layout (Desktop: volle Hero-Fläche, mobil:
+      // eigener Block im Seitenfluss). Gemessen wird daher am Element selbst.
+      W = canvas.clientWidth || window.innerWidth;
+      H = canvas.clientHeight || window.innerHeight;
 
       canvas.width = Math.floor(W * DPR);
       canvas.height = Math.floor(H * DPR);
-      canvas.style.width = W + "px";
-      canvas.style.height = H + "px";
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
       createStars();

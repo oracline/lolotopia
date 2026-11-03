@@ -378,6 +378,19 @@
       pointer-events: auto;
     }
 
+    /* Lolotopia-Logo oben rechts. */
+    .brand-logo {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 2;
+    }
+    .brand-logo img {
+      display: block;
+      width: 20vw;
+      height: auto;
+    }
+
     .scroll-hint {
       position: absolute;
       left: 50%;
@@ -911,9 +924,11 @@
 </head>
 <body>
   <div class="hero" id="top">
-  <canvas id="space"></canvas>
-
-  <section class="ui">
+    <canvas id="space"></canvas>
+    <a class="brand-logo" href="https://www.lolotopia.de">
+      <img src="img/lolotopia_logo.svg" alt="Lolotopia-logo">
+    </a>
+    <section class="ui">
     <h1>Einstellungen</h1>    
     <h2>Schwarzes Loch</h2>
     <div class="preset-wrap">

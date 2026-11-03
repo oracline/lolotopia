@@ -953,8 +953,8 @@
     </div>
     <p class="sgr-a-star-explanation" id="presetDescription" hidden></p>
     <div class="row">
-      <label for="realMass">Masse einstellen</label>
-      <input type="text" class="value value-xwide" id="realMassValue" inputmode="decimal" aria-label="Masse in Sonnenmassen, direkt eingeben" value="4,3 Mio. Sonnenmassen">
+      <label for="realMass">Masse einstellen (Sonnenmassen)</label>
+      <input type="text" class="value value-xwide" id="realMassValue" inputmode="decimal" aria-label="Masse in Sonnenmassen, direkt eingeben" value="4,3 Mio.">
     </div>
     <input id="realMass" type="range" min="0" max="1000" value="590" step="1" aria-label="Echte Masse, logarithmische Skala">
     <div class="view-settings">
@@ -1640,7 +1640,7 @@
       currentSolarMasses = solarMasses;
       diskMassFactor = Math.max(0.065, Math.min(6.25, Math.pow(solarMasses / REF_SOLAR_MASSES, 0.2)));
       viewSizeFactor = sizeFromSolarMasses(solarMasses);
-      setValueField(realMassValue, formatSolarMasses(solarMasses) + " Sonnenmassen");
+      setValueField(realMassValue, formatSolarMasses(solarMasses));
       horizonSizeValue.textContent = formatDistanceKm(2.953 * solarMasses) + " Abstand vom Mittelpunkt";
       updateObjectWeight(solarMasses);
     }

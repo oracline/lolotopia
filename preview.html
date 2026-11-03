@@ -200,6 +200,14 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
+    /* Logo-Sichtbarkeitsschalter in der Legende, grau passend zum Zoom-Regler. */
+    .legend input[type="checkbox"] {
+      accent-color: #9aa2ad;
+      width: clamp(15px, 2.6vw, 18px);
+      height: clamp(15px, 2.6vw, 18px);
+      cursor: pointer;
+    }
+
     .view-hint {
       margin: 2px 0 6px;
       color: var(--muted);
@@ -925,7 +933,7 @@
 <body>
   <div class="hero" id="top">
     <canvas id="space"></canvas>
-    <a class="brand-logo" href="https://www.lolotopia.de">
+    <a class="brand-logo" id="brandLogo" href="https://www.lolotopia.de">
       <img src="img/lolotopia_logo.svg" alt="Lolotopia-logo">
     </a>
     <section class="ui">
@@ -1008,6 +1016,10 @@
       <input type="text" class="value" id="zoomValue" inputmode="decimal" aria-label="Zoom in Prozent, direkt eingeben" value="100 %">
     </div>
     <input id="zoom" type="range" min="0.5" max="2" value="1" step="0.01">
+    <div class="row">
+      <label for="showLogo">Logo anzeigen</label>
+      <input id="showLogo" type="checkbox" checked>
+    </div>
   </div>
 
   <div class="scroll-hint">↓ Nach unten scrollen für Informationen</div>
@@ -1019,6 +1031,8 @@
 
     const brightnessSlider = document.getElementById("brightness");
     const zoomSlider = document.getElementById("zoom");
+    const showLogoCheckbox = document.getElementById("showLogo");
+    const brandLogo = document.getElementById("brandLogo");
 
     const brightnessValue = document.getElementById("brightnessValue");
     const zoomValue = document.getElementById("zoomValue");
@@ -1712,6 +1726,11 @@
     zoomSlider.addEventListener("input", () => {
       exactZoom = null;
       applyZoomFromSlider();
+    });
+
+    // Logo-Sichtbarkeit umschalten (reine Ansichtseinstellung).
+    showLogoCheckbox.addEventListener("change", () => {
+      brandLogo.hidden = !showLogoCheckbox.checked;
     });
 
     // Sturz starten bzw. abbrechen und Startposition wiederherstellen.
